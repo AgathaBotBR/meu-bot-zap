@@ -1,3 +1,16 @@
+const http = require("http"); // Adicionado para o keep-alive
+
+// Criar um servidor simples para o Render não encerrar
+http.createServer((req, res) => {
+    res.writeHead(200, { "Content-Type": "text/plain" });
+    res.end("Bot está rodando!\n");
+}).listen(process.env.PORT || 3000);
+
+// Ping automático para o próprio serviço a cada 5 min
+setInterval(() => {
+    http.get(`http://${process.env.RENDER_EXTERNAL_HOSTNAME}`);
+}, 5 * 60 * 1000);
+
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, downloadMediaMessage } = require("@whiskeysockets/baileys");
 const { Boom } = require("@hapi/boom");
 const P = require("pino");
