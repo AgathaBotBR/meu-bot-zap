@@ -91,7 +91,7 @@ async function startBot() {
 *|*━━━ ✦ 🔎 *MENU PRINCIPAL* ✦
 *|*► *!menu 0*   ❓ Informação
 *|*► *!menu 1*   🖼️ Figurinhas
-*|*► *!menu 2*   ⚒️ Utilidades _-em breve!_
+*|*► *!menu 2*   ⚒️ Utilidades
 *|*► *!menu 3*   🧩 Variado
 *|*
 *|*━━✦༻ _*Feito por: Matt*_ ༾✦`;
@@ -125,16 +125,35 @@ async function startBot() {
             await sock.sendMessage(from, { text: mensagem });
         }
 
+        if (messageContent === "!menu 2") {
+            const mensagem = `👋 Olá, *${nomeContato}*\nTipo de Usuário: ${tipoUsuario}
+────────────────────────
+*|*━━━ ✦ *🤖 agathabot* ✦
+*|*
+*|*━━━ ✦ ⚒️ *UTILIDADES* ✦
+*|*► *!piada* - Recebe uma piada aleatória
+*|*► *!curiosidade* - Recebe uma curiosidade aleatória
+*|*
+*|*━━✦༻ _*Feito por: Matt*_ ༾✦`;
+            await sock.sendMessage(from, { text: mensagem });
+        }
+
         if (messageContent === "!menu 3") {
             const mensagem = `👋 Olá, *${nomeContato}*\nTipo de Usuário: ${tipoUsuario}
 ────────────────────────
 *|*━━━ ✦ *🤖 agathabot* ✦
 *|*
-*|*━━━ ✦ 🧩 *VARIADO* ✦
-*|*► *!piada* - Recebe uma piada aleatória
-*|*► *!curiosidade* - Recebe uma curiosidade aleatória
+*|*━━━━ Guia ❔: *!comando* guia
 *|*
-*|*━━✦༻ _*Feito por: Matt*_ ༾✦`;
+*|*━━ ✦ 🕹️ *JOGOS* ✦
+*|*► *!ppt* opção - Joga pedra, papel e tesoura
+*|*► *!caracoroa* - Joga cara ou coroa - em breve
+*|*► *!roletarussa* - Joga roleta russa - em breve
+*|*
+*|*━━ ✦ 🧩 *ENTRETENIMENTO* ✦
+*|*► *!chance* texto - Chance de algo acontecer - em breve
+*|*
+*|*━━✦༻ _*Feito por: Matt*_ ༺✦`;
             await sock.sendMessage(from, { text: mensagem });
         }
 
@@ -149,6 +168,40 @@ async function startBot() {
             await sock.sendMessage(from, { text: piadaAleatoria });
         }
 
+        if (messageContent.startsWith("!ppt")) {
+            const escolhaJogador = messageContent.split(" ")[1];
+            const opcoes = ["pedra", "papel", "tesoura"];
+            const emojis = { pedra: "✊", papel: "✋", tesoura: "✌️" };
+
+            if (!opcoes.includes(escolhaJogador)) {
+                await sock.sendMessage(from, {
+                    text: `❗ Não foi possível realizar o comando *!ppt*.
+
+*Motivo*: Parece que você usou o comando *!ppt* incorretamente ou não sabe como utilizá-lo.
+
+❔ USO DO COMANDO ❔
+Ex: *!ppt pedra*
+Ex: *!ppt papel*
+Ex: *!ppt tesoura*`
+                });
+                return;
+            }
+
+            const escolhaBot = opcoes[Math.floor(Math.random() * opcoes.length)];
+
+            if (escolhaJogador === escolhaBot) {
+                await sock.sendMessage(from, { text: `😐 *Empate!*\n\nVocê escolheu ${emojis[escolhaJogador]} e o bot escolheu ${emojis[escolhaBot]}` });
+            } else if (
+                (escolhaJogador === "pedra" && escolhaBot === "tesoura") ||
+                (escolhaJogador === "papel" && escolhaBot === "pedra") ||
+                (escolhaJogador === "tesoura" && escolhaBot === "papel")
+            ) {
+                await sock.sendMessage(from, { text: `😁 *Vitória!*\n\nVocê escolheu ${emojis[escolhaJogador]} e o bot escolheu ${emojis[escolhaBot]}` });
+            } else {
+                await sock.sendMessage(from, { text: `😭 *Derrota!*\n\nVocê escolheu ${emojis[escolhaJogador]} e o bot escolheu ${emojis[escolhaBot]}` });
+            }
+        }
+
         if (messageContent === "ping") {
             const start = Date.now();
             await sock.sendMessage(from, { text: "🏓 Pong!" });
@@ -159,7 +212,7 @@ async function startBot() {
         if (messageContent === "!info") {
             const imagePath = path.join(__dirname, "agatha.jpg");
             const caption = `*🏷️ Nome do bot:* agathabot
-*Versão:* 1.1.6
+*Versão:* 1.1.7
 *📄 Criado por:* Matt
 *💻 Desenvolvido com:* Baileys + Node.js
 *📚 Propósito:* Bot pessoal com foco em ajudar grupos.
