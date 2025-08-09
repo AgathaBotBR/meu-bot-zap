@@ -1,12 +1,12 @@
-const http = require("http"); // Adicionado para o keep-alive
+const http = require("http");
 
-// Criar um servidor simples para o Render não encerrar
+// Servidor simples para manter o bot ativo no Render
 http.createServer((req, res) => {
     res.writeHead(200, { "Content-Type": "text/plain" });
     res.end("Bot está rodando!\n");
 }).listen(process.env.PORT || 3000);
 
-// Ping automático para o próprio serviço a cada 5 min
+// Auto-ping a cada 5 minutos
 setInterval(() => {
     http.get(`http://${process.env.RENDER_EXTERNAL_HOSTNAME}`);
 }, 5 * 60 * 1000);
@@ -17,19 +17,6 @@ const P = require("pino");
 const fs = require("fs");
 const path = require("path");
 const { Sticker, StickerTypes } = require("wa-sticker-formatter");
-
-let db = {};
-const dbPath = path.join(__dirname, "db.json");
-
-if (fs.existsSync(dbPath)) {
-    db = JSON.parse(fs.readFileSync(dbPath, "utf-8"));
-} else {
-    db = { comandos: 0, patente: "🔋 Usuário" };
-}
-
-function salvarDB() {
-    fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
-}
 
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState("./auth_info_baileys");
@@ -88,22 +75,22 @@ async function startBot() {
         const texto = msg.message.conversation || msg.message.extendedTextMessage?.text || "";
         const messageContent = texto.toLowerCase();
 
-        db.comandos += 1;
-        salvarDB();
-
-        const dados = db;
-
         console.log("📩 Mensagem recebida:", messageContent);
 
-        if (messageContent === "ping") {
-            await sock.sendMessage(from, { text: "🏓 pong!" });
-            return;
+        // Detectar se é grupo e se o remetente é admin
+        let tipoUsuario = "👤 Usuário";
+        if (from.endsWith("@g.us")) {
+            const metadata = await sock.groupMetadata(from);
+            const sender = msg.key.participant || msg.participant || from;
+            const isAdmin = metadata.participants.find(p => p.id === sender)?.admin;
+            if (isAdmin) {
+                tipoUsuario = "👑 ADM";
+            }
         }
 
+        // Menu principal
         if (messageContent === "!menu") {
-            const mensagem = `👋 Olá, *${nomeContato}*
-Tipo de Usuário: ${dados.patente}
-Comandos feitos: ${dados.comandos}
+            const mensagem = `👋 Olá, *${nomeContato}*\nTipo de Usuário: ${tipoUsuario}
 ────────────────────────
 *|*━━━ ✦ *🤖 agathabot* ✦
 *|*
@@ -118,10 +105,9 @@ Comandos feitos: ${dados.comandos}
             return;
         }
 
+        // Menu 0 - Info
         if (messageContent === "!menu 0") {
-            const mensagem = `👋 Olá, *${nomeContato}*
-Tipo de Usuário: ${dados.patente}
-Comandos feitos: ${dados.comandos}
+            const mensagem = `👋 Olá, *${nomeContato}*\nTipo de Usuário: ${tipoUsuario}
 ────────────────────────
 *|*━━━ ✦ *🤖 agathabot* ✦
 *|*
@@ -134,10 +120,9 @@ Comandos feitos: ${dados.comandos}
             return;
         }
 
+        // Menu 1 - Figurinhas
         if (messageContent === "!menu 1") {
-            const mensagem = `👋 Olá, *${nomeContato}*
-Tipo de Usuário: ${dados.patente}
-Comandos feitos: ${dados.comandos}
+            const mensagem = `👋 Olá, *${nomeContato}*\nTipo de Usuário: ${tipoUsuario}
 ────────────────────────
 *|*━━━ ✦ *🤖 agathabot* ✦
 *|* 
@@ -152,10 +137,9 @@ Comandos feitos: ${dados.comandos}
             return;
         }
 
+        // Menu 3 - Variado
         if (messageContent === "!menu 3") {
-            const mensagem = `👋 Olá, *${nomeContato}*
-Tipo de Usuário: ${dados.patente}
-Comandos feitos: ${dados.comandos}
+            const mensagem = `👋 Olá, *${nomeContato}*\nTipo de Usuário: ${tipoUsuario}
 ────────────────────────
 *|*━━━ ✦ *🤖 agathabot* ✦
 *|* 
@@ -168,18 +152,21 @@ Comandos feitos: ${dados.comandos}
             return;
         }
 
+        // Curiosidade
         if (messageContent === "!curiosidade") {
             const curiosidadeAleatoria = curiosidades[Math.floor(Math.random() * curiosidades.length)];
             await sock.sendMessage(from, { text: curiosidadeAleatoria });
             return;
         }
 
+        // Piada
         if (messageContent === "!piada") {
             const piadaAleatoria = piadas[Math.floor(Math.random() * piadas.length)];
             await sock.sendMessage(from, { text: piadaAleatoria });
             return;
         }
 
+        // Figurinha
         const tipoMsg = Object.keys(msg.message)[0];
         const temLegendaS = msg.message?.[tipoMsg]?.caption?.toLowerCase() === "!s";
 
