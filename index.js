@@ -1,4 +1,9 @@
 const http = require("http");
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, downloadMediaMessage } = require("@whiskeysockets/baileys");
+const P = require("pino");
+const fs = require("fs");
+const path = require("path");
+const { Sticker, StickerTypes } = require("wa-sticker-formatter");
 
 // Servidor simples para manter o bot ativo no Render
 http.createServer((req, res) => {
@@ -10,13 +15,6 @@ http.createServer((req, res) => {
 setInterval(() => {
     http.get(`http://${process.env.RENDER_EXTERNAL_HOSTNAME}`);
 }, 5 * 60 * 1000);
-
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, downloadMediaMessage } = require("@whiskeysockets/baileys");
-const { Boom } = require("@hapi/boom");
-const P = require("pino");
-const fs = require("fs");
-const path = require("path");
-const { Sticker, StickerTypes } = require("wa-sticker-formatter");
 
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState("./auth_info_baileys");
@@ -64,14 +62,12 @@ async function startBot() {
 
     sock.ev.on("messages.upsert", async ({ messages, type }) => {
         if (type !== "notify") return;
-
         const msg = messages[0];
         if (!msg.message || msg.key.fromMe) return;
 
         const from = msg.key.remoteJid;
         const numero = from.split("@")[0];
         const nomeContato = msg.pushName || numero;
-
         const texto = msg.message.conversation || msg.message.extendedTextMessage?.text || "";
         const messageContent = texto.toLowerCase();
 
@@ -83,50 +79,43 @@ async function startBot() {
             const metadata = await sock.groupMetadata(from);
             const sender = msg.key.participant || msg.participant || from;
             const isAdmin = metadata.participants.find(p => p.id === sender)?.admin;
-            if (isAdmin) {
-                tipoUsuario = "👑 ADM";
-            }
+            if (isAdmin) tipoUsuario = "👑 ADM";
         }
 
-        // Menu principal
+        // ========================= MENUS =========================
         if (messageContent === "!menu") {
             const mensagem = `👋 Olá, *${nomeContato}*\nTipo de Usuário: ${tipoUsuario}
 ────────────────────────
 *|*━━━ ✦ *🤖 agathabot* ✦
 *|*
 *|*━━━ ✦ 🔎 *MENU PRINCIPAL* ✦
-*|*► *!menu* 0   ❓ Informação
-*|*► *!menu* 1   🖼️ Figurinhas
-*|*► *!menu* 2   ⚒️ Utilidades _-em breve!_
-*|*► *!menu* 3   🧩 Variado
+*|*► *!menu 0*   ❓ Informação
+*|*► *!menu 1*   🖼️ Figurinhas
+*|*► *!menu 2*   ⚒️ Utilidades _-em breve!_
+*|*► *!menu 3*   🧩 Variado
 *|*
 *|*━━✦༻ _*Feito por: Matt*_ ༾✦`;
             await sock.sendMessage(from, { text: mensagem });
-            return;
         }
 
-        // Menu 0 - Info
         if (messageContent === "!menu 0") {
             const mensagem = `👋 Olá, *${nomeContato}*\nTipo de Usuário: ${tipoUsuario}
 ────────────────────────
 *|*━━━ ✦ *🤖 agathabot* ✦
 *|*
-*|* 📄 Criado por: *Matt*
-*|* 💻 Desenvolvido com: *Baileys + Node.js*
-*|* 📚 Propósito: *Bot pessoal com foco em figurinhas, humor e informação!*
+*|*━━━━ Guia ❔: *!comando* guia
+*|*
+*|*━━━━ ✦ ❓ *INFO/SUPORTE* ✦
+*|*► *!info* - Informações do bot
 *|*
 *|*━━✦༻ _*Feito por: Matt*_ ༾✦`;
             await sock.sendMessage(from, { text: mensagem });
-            return;
         }
 
-        // Menu 1 - Figurinhas
         if (messageContent === "!menu 1") {
             const mensagem = `👋 Olá, *${nomeContato}*\nTipo de Usuário: ${tipoUsuario}
 ────────────────────────
 *|*━━━ ✦ *🤖 agathabot* ✦
-*|* 
-*|*━━━ ✦ ❓ Guia: *!comando* guia _- em breve_
 *|*
 *|*━━━ ✦ 🖼️ *FIGURINHAS* ✦
 *|*► *!s* - Imagem/vídeo para sticker
@@ -134,36 +123,48 @@ async function startBot() {
 *|*
 *|*━━✦༻ _*Feito por: Matt*_ ༾✦`;
             await sock.sendMessage(from, { text: mensagem });
-            return;
         }
 
-        // Menu 3 - Variado
         if (messageContent === "!menu 3") {
             const mensagem = `👋 Olá, *${nomeContato}*\nTipo de Usuário: ${tipoUsuario}
 ────────────────────────
 *|*━━━ ✦ *🤖 agathabot* ✦
-*|* 
+*|*
 *|*━━━ ✦ 🧩 *VARIADO* ✦
 *|*► *!piada* - Recebe uma piada aleatória
 *|*► *!curiosidade* - Recebe uma curiosidade aleatória
 *|*
 *|*━━✦༻ _*Feito por: Matt*_ ༾✦`;
             await sock.sendMessage(from, { text: mensagem });
-            return;
         }
 
-        // Curiosidade
+        // ========================= COMANDOS =========================
         if (messageContent === "!curiosidade") {
             const curiosidadeAleatoria = curiosidades[Math.floor(Math.random() * curiosidades.length)];
             await sock.sendMessage(from, { text: curiosidadeAleatoria });
-            return;
         }
 
-        // Piada
         if (messageContent === "!piada") {
             const piadaAleatoria = piadas[Math.floor(Math.random() * piadas.length)];
             await sock.sendMessage(from, { text: piadaAleatoria });
-            return;
+        }
+
+        if (messageContent === "ping") {
+            const start = Date.now();
+            await sock.sendMessage(from, { text: "🏓 Pong!" });
+            const end = Date.now();
+            await sock.sendMessage(from, { text: `⏱️ Latência: ${end - start}ms` });
+        }
+
+        if (messageContent === "!info") {
+            const imagePath = path.join(__dirname, "agatha.jpg");
+            const caption = `*🏷️ Nome do bot:* agathabot
+*Versão:* 1.1.6
+*📄 Criado por:* Matt
+*💻 Desenvolvido com:* Baileys + Node.js
+*📚 Propósito:* Bot pessoal com foco em ajudar grupos.
+*Contato do administrador:* +55 99 98146-2301`;
+            await sock.sendMessage(from, { image: fs.readFileSync(imagePath), caption });
         }
 
         // Figurinha
@@ -176,25 +177,18 @@ async function startBot() {
                     logger: P({ level: "silent" }),
                     reuploadRequest: sock.updateMediaMessage
                 });
-
                 const sticker = new Sticker(mediaBuffer, {
                     type: StickerTypes.FULL,
                     pack: "AgathaBot",
                     author: "Matt",
                     quality: 70,
                 });
-
                 const stickerBuffer = await sticker.toBuffer();
-
-                await sock.sendMessage(from, {
-                    sticker: stickerBuffer
-                }, { quoted: msg });
-
+                await sock.sendMessage(from, { sticker: stickerBuffer }, { quoted: msg });
             } catch (err) {
                 console.error("❌ Erro ao gerar figurinha:", err);
                 await sock.sendMessage(from, { text: "⚠️ Ocorreu um erro ao criar a figurinha." });
             }
-            return;
         }
     });
 }
