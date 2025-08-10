@@ -5,6 +5,9 @@ const fs = require("fs");
 const path = require("path");
 const { Sticker, StickerTypes } = require("wa-sticker-formatter");
 
+// ===== CONFIGURE SEU NÚMERO AQUI PARA RECEBER BACKUPS =====
+const numeroDono = "5599981462301@s.whatsapp.net"; // Coloque seu número no formato DDI + DDD + número + @s.whatsapp.net
+
 // Banco de dados
 let db = { regras: {} };
 const dbPath = path.join(__dirname, "db.json");
@@ -15,13 +18,25 @@ function saveDb() {
     fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
 }
 
+async function enviarBackup(sock, grupoNome) {
+    try {
+        await sock.sendMessage(numeroDono, {
+            document: fs.readFileSync(dbPath),
+            mimetype: "application/json",
+            fileName: "db.json",
+            caption: `📦 Backup automático gerado!\n📌 Grupo alterado: *${grupoNome}*`
+        });
+    } catch (err) {
+        console.log("Erro ao enviar backup:", err);
+    }
+}
+
 // Servidor para manter ativo no Render
 http.createServer((req, res) => {
     res.writeHead(200, { "Content-Type": "text/plain" });
     res.end("Bot está rodando!\n");
 }).listen(process.env.PORT || 3000);
 
-// Auto-ping a cada 5 minutos
 setInterval(() => {
     http.get(`http://${process.env.RENDER_EXTERNAL_HOSTNAME}`);
 }, 5 * 60 * 1000);
@@ -41,7 +56,6 @@ async function startBot() {
         const { connection, lastDisconnect } = update;
         if (connection === "close") {
             const shouldReconnect = (lastDisconnect.error)?.output?.statusCode !== DisconnectReason.loggedOut;
-            console.log("Conexão encerrada. Reconectando...", shouldReconnect);
             if (shouldReconnect) startBot();
         } else if (connection === "open") {
             console.log("✅ Bot conectado com sucesso!");
@@ -92,11 +106,9 @@ async function startBot() {
             isAdmin = metadata.participants.find(p => p.id === sender)?.admin;
         }
 
-        console.log("📩 Mensagem recebida:", messageContent);
-
         let tipoUsuario = isGroup && isAdmin ? "👑 ADM" : "👤 Usuário";
 
-        // ========================= MENUS =========================
+        // MENUS
         if (messageContent === "!menu") {
             const mensagem = `👋 Olá, *${nomeContato}*\nTipo de Usuário: ${tipoUsuario}
 ────────────────────────
@@ -171,7 +183,7 @@ async function startBot() {
             await sock.sendMessage(from, { text: mensagem });
         }
 
-        // ========================= COMANDOS =========================
+        // COMANDOS
         if (messageContent === "!curiosidade") {
             await sock.sendMessage(from, { text: curiosidades[Math.floor(Math.random() * curiosidades.length)] });
         }
@@ -206,7 +218,7 @@ async function startBot() {
             await sock.sendMessage(from, {
                 image: fs.readFileSync(imagePath),
                 caption: `*🏷️ Nome do bot:* agathabot
-*Versão:* 1.2.2
+*Versão:* 1.2.6
 *📄 Criado por:* Matt
 *💻 Desenvolvido com:* Baileys + Node.js
 *📚 Propósito:* Bot pessoal com foco em ajudar grupos.
@@ -214,7 +226,7 @@ async function startBot() {
             });
         }
 
-        // ========================= REGRAS =========================
+        // REGRAS + BACKUP
         if (messageContent.startsWith("!setregras")) {
             if (!isGroup) return sock.sendMessage(from, { text: "❌ Apenas em grupos." });
             if (!isAdmin) return sock.sendMessage(from, { text: "❌ Apenas administradores podem alterar as regras." });
@@ -224,7 +236,11 @@ async function startBot() {
 
             db.regras[from] = regrasTexto;
             saveDb();
-            return sock.sendMessage(from, { text: "✅ Regras atualizadas com sucesso!" });
+
+            const grupoNome = isGroup ? (await sock.groupMetadata(from)).subject : "Desconhecido";
+            await enviarBackup(sock, grupoNome);
+
+            return sock.sendMessage(from, { text: "✅ Regras atualizadas com sucesso! Backup enviado ao dono." });
         }
 
         if (messageContent === "!regras") {
@@ -233,7 +249,7 @@ async function startBot() {
             return sock.sendMessage(from, { text: `📜 Regras do grupo:\n\n${regrasDoGrupo}` });
         }
 
-        // ========================= FIGURINHAS =========================
+        // FIGURINHAS
         const tipoMsg = Object.keys(msg.message)[0];
         const isStickerCommand = messageContent === "!s";
         const temLegendaS = msg.message?.[tipoMsg]?.caption?.toLowerCase() === "!s";
@@ -262,7 +278,7 @@ async function startBot() {
         }
     });
 
-    // Boas-vindas
+    // BOAS-VINDAS
     sock.ev.on("group-participants.update", async (anu) => {
         try {
             const metadata = await sock.groupMetadata(anu.id);
