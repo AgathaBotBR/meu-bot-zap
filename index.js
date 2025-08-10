@@ -5,7 +5,17 @@ const fs = require("fs");
 const path = require("path");
 const { Sticker, StickerTypes } = require("wa-sticker-formatter");
 
-// Servidor simples para manter o bot ativo no Render
+// Banco de dados
+let db = { regras: {} };
+const dbPath = path.join(__dirname, "db.json");
+if (fs.existsSync(dbPath)) {
+    db = JSON.parse(fs.readFileSync(dbPath));
+}
+function saveDb() {
+    fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
+}
+
+// Servidor para manter ativo no Render
 http.createServer((req, res) => {
     res.writeHead(200, { "Content-Type": "text/plain" });
     res.end("Bot está rodando!\n");
@@ -50,14 +60,17 @@ async function startBot() {
     ];
 
     const piadas = [
-        "Por que o computador foi ao médico? Porque ele estava com vírus!",
-        "O que o pato falou para a pata? Vem Quá!",
-        "Por que a aranha é o animal mais carente? Porque ela é um aracneedy!",
-        "Qual é o cúmulo do azar? Quebrar a perna da cadeira e sentar nela mesmo assim.",
-        "Por que o livro de matemática se matou? Porque tinha muitos problemas.",
-        "O que o tomate foi fazer no banco? Tirar extrato!",
-        "Como o elétron atende o telefone? Próton!",
-        "Por que o elefante não usa computador? Porque ele tem medo do mouse!"
+        "Você conhece a piada do pônei? Pô nei eu.",
+        "O que o pagodeiro foi fazer na igreja? Cantar pá God.",
+        "O que o pato falou para a pata? Vem quá.",
+        "Você sabe qual é o rei dos queijos? O reiqueijão.",
+        "O que acontece quando chove na Inglaterra? Vira Inglalama.",
+        "O que o tomate foi fazer no banco? Tirar extrato.",
+        "Por que a velhinha não usa relógio? Porque ela é sem hora (senhora).",
+        "Por que há uma cama elástica no polo Norte? Para o urso polar.",
+        "A plantinha foi ao hospital, mas não foi atendida. Por que? Porque lá só tinha médico de plantão.",
+        "Fui comprar um remédio e o farmacêutico perguntou se eu tinha receita. Respondi que se eu tivesse a receita, faria o remédio em casa.",
+        "Por que o livro de matemática se matou? Porque tinha muitos problemas."
     ];
 
     sock.ev.on("messages.upsert", async ({ messages, type }) => {
@@ -70,17 +83,18 @@ async function startBot() {
         const nomeContato = msg.pushName || numero;
         const texto = msg.message.conversation || msg.message.extendedTextMessage?.text || "";
         const messageContent = texto.toLowerCase();
+        const isGroup = from.endsWith("@g.us");
+        let isAdmin = false;
+
+        if (isGroup) {
+            const metadata = await sock.groupMetadata(from);
+            const sender = msg.key.participant || msg.participant || from;
+            isAdmin = metadata.participants.find(p => p.id === sender)?.admin;
+        }
 
         console.log("📩 Mensagem recebida:", messageContent);
 
-        // Detectar se é grupo e se o remetente é admin
-        let tipoUsuario = "👤 Usuário";
-        if (from.endsWith("@g.us")) {
-            const metadata = await sock.groupMetadata(from);
-            const sender = msg.key.participant || msg.participant || from;
-            const isAdmin = metadata.participants.find(p => p.id === sender)?.admin;
-            if (isAdmin) tipoUsuario = "👑 ADM";
-        }
+        let tipoUsuario = isGroup && isAdmin ? "👑 ADM" : "👤 Usuário";
 
         // ========================= MENUS =========================
         if (messageContent === "!menu") {
@@ -107,6 +121,8 @@ async function startBot() {
 *|*
 *|*━━━━ ✦ ❓ *INFO/SUPORTE* ✦
 *|*► *!info* - Informações do bot
+*|*► *!regras* - Regras do grupo
+*|*► *!setregras* - Apenas para ADM
 *|*
 *|*━━✦༻ _*Feito por: Matt*_ ༾✦`;
             await sock.sendMessage(from, { text: mensagem });
@@ -143,8 +159,6 @@ async function startBot() {
 ────────────────────────
 *|*━━━ ✦ *🤖 agathabot* ✦
 *|*
-*|*━━━━ Guia ❔: *!comando* guia
-*|*
 *|*━━ ✦ 🕹️ *JOGOS* ✦
 *|*► *!ppt* opção - Joga pedra, papel e tesoura
 *|*► *!caracoroa* - Joga cara ou coroa - em breve
@@ -159,13 +173,11 @@ async function startBot() {
 
         // ========================= COMANDOS =========================
         if (messageContent === "!curiosidade") {
-            const curiosidadeAleatoria = curiosidades[Math.floor(Math.random() * curiosidades.length)];
-            await sock.sendMessage(from, { text: curiosidadeAleatoria });
+            await sock.sendMessage(from, { text: curiosidades[Math.floor(Math.random() * curiosidades.length)] });
         }
 
         if (messageContent === "!piada") {
-            const piadaAleatoria = piadas[Math.floor(Math.random() * piadas.length)];
-            await sock.sendMessage(from, { text: piadaAleatoria });
+            await sock.sendMessage(from, { text: piadas[Math.floor(Math.random() * piadas.length)] });
         }
 
         if (messageContent.startsWith("!ppt")) {
@@ -174,59 +186,66 @@ async function startBot() {
             const emojis = { pedra: "✊", papel: "✋", tesoura: "✌️" };
 
             if (!opcoes.includes(escolhaJogador)) {
-                await sock.sendMessage(from, {
-                    text: `❗ Não foi possível realizar o comando *!ppt*.
-
-*Motivo*: Parece que você usou o comando *!ppt* incorretamente ou não sabe como utilizá-lo.
-
-❔ USO DO COMANDO ❔
-Ex: *!ppt pedra*
-Ex: *!ppt papel*
-Ex: *!ppt tesoura*`
-                });
-                return;
+                return sock.sendMessage(from, { text: "❗ Use: !ppt pedra | !ppt papel | !ppt tesoura" });
             }
 
             const escolhaBot = opcoes[Math.floor(Math.random() * opcoes.length)];
-
-            if (escolhaJogador === escolhaBot) {
-                await sock.sendMessage(from, { text: `😐 *Empate!*\n\nVocê escolheu ${emojis[escolhaJogador]} e o bot escolheu ${emojis[escolhaBot]}` });
-            } else if (
+            let resultado = "😭 *Derrota!*";
+            if (escolhaJogador === escolhaBot) resultado = "😐 *Empate!*";
+            else if (
                 (escolhaJogador === "pedra" && escolhaBot === "tesoura") ||
                 (escolhaJogador === "papel" && escolhaBot === "pedra") ||
                 (escolhaJogador === "tesoura" && escolhaBot === "papel")
-            ) {
-                await sock.sendMessage(from, { text: `😁 *Vitória!*\n\nVocê escolheu ${emojis[escolhaJogador]} e o bot escolheu ${emojis[escolhaBot]}` });
-            } else {
-                await sock.sendMessage(from, { text: `😭 *Derrota!*\n\nVocê escolheu ${emojis[escolhaJogador]} e o bot escolheu ${emojis[escolhaBot]}` });
-            }
-        }
+            ) resultado = "😁 *Vitória!*";
 
-        if (messageContent === "ping") {
-            const start = Date.now();
-            await sock.sendMessage(from, { text: "🏓 Pong!" });
-            const end = Date.now();
-            await sock.sendMessage(from, { text: `⏱️ Latência: ${end - start}ms` });
+            await sock.sendMessage(from, { text: `${resultado}\n\nVocê: ${emojis[escolhaJogador]} | Bot: ${emojis[escolhaBot]}` });
         }
 
         if (messageContent === "!info") {
             const imagePath = path.join(__dirname, "agatha.jpg");
-            const caption = `*🏷️ Nome do bot:* agathabot
-*Versão:* 1.1.7
+            await sock.sendMessage(from, {
+                image: fs.readFileSync(imagePath),
+                caption: `*🏷️ Nome do bot:* agathabot
+*Versão:* 1.2.2
 *📄 Criado por:* Matt
 *💻 Desenvolvido com:* Baileys + Node.js
 *📚 Propósito:* Bot pessoal com foco em ajudar grupos.
-*Contato do administrador:* +55 99 98146-2301`;
-            await sock.sendMessage(from, { image: fs.readFileSync(imagePath), caption });
+*Contato do administrador:* +55 99 98146-2301`
+            });
         }
 
-        // Figurinha
-        const tipoMsg = Object.keys(msg.message)[0];
-        const temLegendaS = msg.message?.[tipoMsg]?.caption?.toLowerCase() === "!s";
+        // ========================= REGRAS =========================
+        if (messageContent.startsWith("!setregras")) {
+            if (!isGroup) return sock.sendMessage(from, { text: "❌ Apenas em grupos." });
+            if (!isAdmin) return sock.sendMessage(from, { text: "❌ Apenas administradores podem alterar as regras." });
 
-        if ((tipoMsg === "imageMessage" || tipoMsg === "videoMessage") && temLegendaS) {
+            const regrasTexto = messageContent.replace("!setregras", "").trim();
+            if (!regrasTexto) return sock.sendMessage(from, { text: "Digite as regras após o comando. Ex: !setregras Não enviar links" });
+
+            db.regras[from] = regrasTexto;
+            saveDb();
+            return sock.sendMessage(from, { text: "✅ Regras atualizadas com sucesso!" });
+        }
+
+        if (messageContent === "!regras") {
+            if (!isGroup) return sock.sendMessage(from, { text: "❌ Apenas em grupos." });
+            const regrasDoGrupo = db.regras[from] || "📌 Nenhuma regra definida ainda.";
+            return sock.sendMessage(from, { text: `📜 Regras do grupo:\n\n${regrasDoGrupo}` });
+        }
+
+        // ========================= FIGURINHAS =========================
+        const tipoMsg = Object.keys(msg.message)[0];
+        const isStickerCommand = messageContent === "!s";
+        const temLegendaS = msg.message?.[tipoMsg]?.caption?.toLowerCase() === "!s";
+        const isReplyStickerCommand = isStickerCommand && msg.message?.extendedTextMessage?.contextInfo?.quotedMessage &&
+            (msg.message.extendedTextMessage.contextInfo.quotedMessage.imageMessage || msg.message.extendedTextMessage.contextInfo.quotedMessage.videoMessage);
+
+        if ((tipoMsg === "imageMessage" || tipoMsg === "videoMessage") && temLegendaS || isReplyStickerCommand) {
             try {
-                const mediaBuffer = await downloadMediaMessage(msg, "buffer", {}, {
+                const quoted = isReplyStickerCommand
+                    ? { message: msg.message.extendedTextMessage.contextInfo.quotedMessage }
+                    : msg;
+                const mediaBuffer = await downloadMediaMessage(quoted, "buffer", {}, {
                     logger: P({ level: "silent" }),
                     reuploadRequest: sock.updateMediaMessage
                 });
@@ -236,12 +255,25 @@ Ex: *!ppt tesoura*`
                     author: "Matt",
                     quality: 70,
                 });
-                const stickerBuffer = await sticker.toBuffer();
-                await sock.sendMessage(from, { sticker: stickerBuffer }, { quoted: msg });
-            } catch (err) {
-                console.error("❌ Erro ao gerar figurinha:", err);
+                await sock.sendMessage(from, { sticker: await sticker.toBuffer() }, { quoted: msg });
+            } catch {
                 await sock.sendMessage(from, { text: "⚠️ Ocorreu um erro ao criar a figurinha." });
             }
+        }
+    });
+
+    // Boas-vindas
+    sock.ev.on("group-participants.update", async (anu) => {
+        try {
+            const metadata = await sock.groupMetadata(anu.id);
+            for (let num of anu.participants) {
+                if (anu.action == "add") {
+                    let welcomeText = `👋 Olá @${num.split('@')[0]}! Bem-vindo(a) ao grupo *${metadata.subject}*.\n\nDigite !menu para ver os comandos.\nUse !regras para conhecer as regras.`;
+                    await sock.sendMessage(anu.id, { text: welcomeText, mentions: [num] });
+                }
+            }
+        } catch (err) {
+            console.log(err);
         }
     });
 }
