@@ -6,7 +6,7 @@ const path = require("path");
 const { Sticker, StickerTypes } = require("wa-sticker-formatter");
 
 // ===== CONFIGURE SEU NÚMERO AQUI PARA RECEBER BACKUPS =====
-const numeroDono = "5599981462301@s.whatsapp.net"; // Coloque seu número no formato DDI + DDD + número + @s.whatsapp.net
+const numeroDono = "5599981462301@s.whatsapp.net";
 
 // Banco de dados
 let db = { regras: {} };
@@ -108,9 +108,13 @@ async function startBot() {
 
         let tipoUsuario = isGroup && isAdmin ? "👑 ADM" : "👤 Usuário";
 
+        const sendText = async (jid, text) => {
+            await sock.sendMessage(jid, { text, ephemeralExpiration: 0 });
+        };
+
         // MENUS
         if (messageContent === "!menu") {
-            const mensagem = `👋 Olá, *${nomeContato}*\nTipo de Usuário: ${tipoUsuario}
+            await sendText(from, `👋 Olá, *${nomeContato}*\nTipo de Usuário: ${tipoUsuario}
 ────────────────────────
 *|*━━━ ✦ *🤖 agathabot* ✦
 *|*
@@ -120,12 +124,11 @@ async function startBot() {
 *|*► *!menu 2*   ⚒️ Utilidades
 *|*► *!menu 3*   🧩 Variado
 *|*
-*|*━━✦༻ _*Feito por: Matt*_ ༾✦`;
-            await sock.sendMessage(from, { text: mensagem });
+*|*━━✦༻ _*Feito por: Matt*_ ༾✦`);
         }
 
         if (messageContent === "!menu 0") {
-            const mensagem = `👋 Olá, *${nomeContato}*\nTipo de Usuário: ${tipoUsuario}
+            await sendText(from, `👋 Olá, *${nomeContato}*\nTipo de Usuário: ${tipoUsuario}
 ────────────────────────
 *|*━━━ ✦ *🤖 agathabot* ✦
 *|*
@@ -136,12 +139,11 @@ async function startBot() {
 *|*► *!regras* - Regras do grupo
 *|*► *!setregras* - Apenas para ADM
 *|*
-*|*━━✦༻ _*Feito por: Matt*_ ༾✦`;
-            await sock.sendMessage(from, { text: mensagem });
+*|*━━✦༻ _*Feito por: Matt*_ ༾✦`);
         }
 
         if (messageContent === "!menu 1") {
-            const mensagem = `👋 Olá, *${nomeContato}*\nTipo de Usuário: ${tipoUsuario}
+            await sendText(from, `👋 Olá, *${nomeContato}*\nTipo de Usuário: ${tipoUsuario}
 ────────────────────────
 *|*━━━ ✦ *🤖 agathabot* ✦
 *|*
@@ -149,25 +151,24 @@ async function startBot() {
 *|*► *!s* - Imagem/vídeo para sticker
 *|*━━━ _Mais comandos em breve!_
 *|*
-*|*━━✦༻ _*Feito por: Matt*_ ༾✦`;
-            await sock.sendMessage(from, { text: mensagem });
+*|*━━✦༻ _*Feito por: Matt*_ ༾✦`);
         }
 
         if (messageContent === "!menu 2") {
-            const mensagem = `👋 Olá, *${nomeContato}*\nTipo de Usuário: ${tipoUsuario}
+            await sendText(from, `👋 Olá, *${nomeContato}*\nTipo de Usuário: ${tipoUsuario}
 ────────────────────────
 *|*━━━ ✦ *🤖 agathabot* ✦
 *|*
 *|*━━━ ✦ ⚒️ *UTILIDADES* ✦
 *|*► *!piada* - Recebe uma piada aleatória
 *|*► *!curiosidade* - Recebe uma curiosidade aleatória
+*|*► *ping* - Testar latência
 *|*
-*|*━━✦༻ _*Feito por: Matt*_ ༾✦`;
-            await sock.sendMessage(from, { text: mensagem });
+*|*━━✦༻ _*Feito por: Matt*_ ༾✦`);
         }
 
         if (messageContent === "!menu 3") {
-            const mensagem = `👋 Olá, *${nomeContato}*\nTipo de Usuário: ${tipoUsuario}
+            await sendText(from, `👋 Olá, *${nomeContato}*\nTipo de Usuário: ${tipoUsuario}
 ────────────────────────
 *|*━━━ ✦ *🤖 agathabot* ✦
 *|*
@@ -179,17 +180,16 @@ async function startBot() {
 *|*━━ ✦ 🧩 *ENTRETENIMENTO* ✦
 *|*► *!chance* texto - Chance de algo acontecer - em breve
 *|*
-*|*━━✦༻ _*Feito por: Matt*_ ༺✦`;
-            await sock.sendMessage(from, { text: mensagem });
+*|*━━✦༻ _*Feito por: Matt*_ ༺✦`);
         }
 
         // COMANDOS
         if (messageContent === "!curiosidade") {
-            await sock.sendMessage(from, { text: curiosidades[Math.floor(Math.random() * curiosidades.length)] });
+            await sendText(from, curiosidades[Math.floor(Math.random() * curiosidades.length)]);
         }
 
         if (messageContent === "!piada") {
-            await sock.sendMessage(from, { text: piadas[Math.floor(Math.random() * piadas.length)] });
+            await sendText(from, piadas[Math.floor(Math.random() * piadas.length)]);
         }
 
         if (messageContent.startsWith("!ppt")) {
@@ -198,7 +198,7 @@ async function startBot() {
             const emojis = { pedra: "✊", papel: "✋", tesoura: "✌️" };
 
             if (!opcoes.includes(escolhaJogador)) {
-                return sock.sendMessage(from, { text: "❗ Use: !ppt pedra | !ppt papel | !ppt tesoura" });
+                return sendText(from, "❗ Use: !ppt pedra | !ppt papel | !ppt tesoura");
             }
 
             const escolhaBot = opcoes[Math.floor(Math.random() * opcoes.length)];
@@ -210,7 +210,15 @@ async function startBot() {
                 (escolhaJogador === "tesoura" && escolhaBot === "papel")
             ) resultado = "😁 *Vitória!*";
 
-            await sock.sendMessage(from, { text: `${resultado}\n\nVocê: ${emojis[escolhaJogador]} | Bot: ${emojis[escolhaBot]}` });
+            await sendText(from, `${resultado}\n\nVocê: ${emojis[escolhaJogador]} | Bot: ${emojis[escolhaBot]}`);
+        }
+
+        // Comando PING
+        if (messageContent === "ping" || messageContent === "!ping") {
+            const start = Date.now();
+            await sendText(from, "🏓 Pong!");
+            const end = Date.now();
+            await sendText(from, `⏱️ Latência: ${end - start}ms`);
         }
 
         if (messageContent === "!info") {
@@ -218,7 +226,7 @@ async function startBot() {
             await sock.sendMessage(from, {
                 image: fs.readFileSync(imagePath),
                 caption: `*🏷️ Nome do bot:* agathabot
-*Versão:* 1.2.6
+*Versão:* 1.2.7
 *📄 Criado por:* Matt
 *💻 Desenvolvido com:* Baileys + Node.js
 *📚 Propósito:* Bot pessoal com foco em ajudar grupos.
@@ -228,11 +236,11 @@ async function startBot() {
 
         // REGRAS + BACKUP
         if (messageContent.startsWith("!setregras")) {
-            if (!isGroup) return sock.sendMessage(from, { text: "❌ Apenas em grupos." });
-            if (!isAdmin) return sock.sendMessage(from, { text: "❌ Apenas administradores podem alterar as regras." });
+            if (!isGroup) return sendText(from, "❌ Apenas em grupos.");
+            if (!isAdmin) return sendText(from, "❌ Apenas administradores podem alterar as regras.");
 
             const regrasTexto = messageContent.replace("!setregras", "").trim();
-            if (!regrasTexto) return sock.sendMessage(from, { text: "Digite as regras após o comando. Ex: !setregras Não enviar links" });
+            if (!regrasTexto) return sendText(from, "Digite as regras após o comando. Ex: !setregras Não enviar links");
 
             db.regras[from] = regrasTexto;
             saveDb();
@@ -240,13 +248,13 @@ async function startBot() {
             const grupoNome = isGroup ? (await sock.groupMetadata(from)).subject : "Desconhecido";
             await enviarBackup(sock, grupoNome);
 
-            return sock.sendMessage(from, { text: "✅ Regras atualizadas com sucesso! Backup enviado ao dono." });
+            return sendText(from, "✅ Regras atualizadas com sucesso! Backup enviado ao dono.");
         }
 
         if (messageContent === "!regras") {
-            if (!isGroup) return sock.sendMessage(from, { text: "❌ Apenas em grupos." });
+            if (!isGroup) return sendText(from, "❌ Apenas em grupos.");
             const regrasDoGrupo = db.regras[from] || "📌 Nenhuma regra definida ainda.";
-            return sock.sendMessage(from, { text: `📜 Regras do grupo:\n\n${regrasDoGrupo}` });
+            return sendText(from, `📜 Regras do grupo:\n\n${regrasDoGrupo}`);
         }
 
         // FIGURINHAS
@@ -271,9 +279,9 @@ async function startBot() {
                     author: "Matt",
                     quality: 70,
                 });
-                await sock.sendMessage(from, { sticker: await sticker.toBuffer() }, { quoted: msg });
+                await sock.sendMessage(from, { sticker: await sticker.toBuffer(), ephemeralExpiration: 0 }, { quoted: msg });
             } catch {
-                await sock.sendMessage(from, { text: "⚠️ Ocorreu um erro ao criar a figurinha." });
+                await sendText(from, "⚠️ Ocorreu um erro ao criar a figurinha.");
             }
         }
     });
@@ -285,7 +293,7 @@ async function startBot() {
             for (let num of anu.participants) {
                 if (anu.action == "add") {
                     let welcomeText = `👋 Olá @${num.split('@')[0]}! Bem-vindo(a) ao grupo *${metadata.subject}*.\n\nDigite !menu para ver os comandos.\nUse !regras para conhecer as regras.`;
-                    await sock.sendMessage(anu.id, { text: welcomeText, mentions: [num] });
+                    await sock.sendMessage(anu.id, { text: welcomeText, mentions: [num], ephemeralExpiration: 0 });
                 }
             }
         } catch (err) {
