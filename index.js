@@ -149,7 +149,6 @@ async function startBot() {
 *|*
 *|*━━━ ✦ 🖼️ *FIGURINHAS* ✦
 *|*► *!s* - Imagem/vídeo para sticker
-*|*━━━ _Mais comandos em breve!_
 *|*
 *|*━━✦༻ _*Feito por: Matt*_ ༾✦`);
         }
@@ -174,11 +173,9 @@ async function startBot() {
 *|*
 *|*━━ ✦ 🕹️ *JOGOS* ✦
 *|*► *!ppt* opção - Joga pedra, papel e tesoura
-*|*► *!caracoroa* - Joga cara ou coroa - em breve
-*|*► *!roletarussa* - Joga roleta russa - em breve
-*|*
-*|*━━ ✦ 🧩 *ENTRETENIMENTO* ✦
-*|*► *!chance* texto - Chance de algo acontecer - em breve
+*|*► *!caracoroa* cara|coroa - Joga cara ou coroa
+*|*► *!roletarussa* - Joga roleta russa
+*|*► *!chance* algo - Chance de algo acontecer
 *|*
 *|*━━✦༻ _*Feito por: Matt*_ ༺✦`);
         }
@@ -213,6 +210,36 @@ async function startBot() {
             await sendText(from, `${resultado}\n\nVocê: ${emojis[escolhaJogador]} | Bot: ${emojis[escolhaBot]}`);
         }
 
+        // Novo: Cara ou coroa
+        if (messageContent.startsWith("!caracoroa")) {
+            const escolha = messageContent.split(" ")[1];
+            if (!["cara", "coroa"].includes(escolha)) {
+                return sendText(from, "❗ Use corretamente: !caracoroa cara | !caracoroa coroa");
+            }
+            await sendText(from, "🪙 Lançando a moeda...");
+            const resultado = Math.random() < 0.5 ? "cara" : "coroa";
+            const imgPath = path.join(__dirname, `${resultado}.png`);
+            await sock.sendMessage(from, { image: fs.readFileSync(imgPath), caption: `${escolha === resultado ? "😁 *Vitória!*" : "😭 *Derrota!*"}\n\nO resultado caiu *${resultado.toUpperCase()}*` });
+        }
+
+        // Novo: Roleta russa
+        if (messageContent === "!roletarussa") {
+            await sendText(from, "🔫 *Roleta russa*");
+            if (Math.random() < 0.16) {
+                await sendText(from, "💀 A arma disparou, você morreu.");
+            } else {
+                await sendText(from, "😁 A arma não disparou, você sobreviveu.");
+            }
+        }
+
+        // Novo: Chance
+        if (messageContent.startsWith("!chance")) {
+            const frase = messageContent.replace("!chance", "").trim();
+            if (!frase) return sendText(from, "❗ Use: !chance algo");
+            const chance = Math.floor(Math.random() * 101);
+            await sendText(from, `📊 *Chance*\n\nVocê tem *${chance}%* de chance de *${frase}*`);
+        }
+
         // Comando PING
         if (messageContent === "ping" || messageContent === "!ping") {
             const start = Date.now();
@@ -226,7 +253,7 @@ async function startBot() {
             await sock.sendMessage(from, {
                 image: fs.readFileSync(imagePath),
                 caption: `*🏷️ Nome do bot:* agathabot
-*Versão:* 1.2.7
+*Versão:* 1.2.9
 *📄 Criado por:* Matt
 *💻 Desenvolvido com:* Baileys + Node.js
 *📚 Propósito:* Bot pessoal com foco em ajudar grupos.
