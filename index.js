@@ -210,16 +210,27 @@ async function startBot() {
             await sendText(from, `${resultado}\n\nVocê: ${emojis[escolhaJogador]} | Bot: ${emojis[escolhaBot]}`);
         }
 
-        // Novo: Cara ou coroa
+        // Novo: Cara ou coroa (corrigido + mensagem de erro bonita)
         if (messageContent.startsWith("!caracoroa")) {
             const escolha = messageContent.split(" ")[1];
             if (!["cara", "coroa"].includes(escolha)) {
-                return sendText(from, "❗ Use corretamente: !caracoroa cara | !caracoroa coroa");
+                return sendText(from, `❗ Não foi possível realizar o comando *!caracoroa*.
+
+*Motivo* : Parece que você usou o comando *!caracoroa* incorretamente ou não sabe como utilizá-lo.
+
+❔ USO DO COMANDO ❔
+
+Ex: *!caracoroa* cara - Escolhe cara e joga a moeda.
+
+Ex: *!caracoroa* coroa - Escolhe coroa e joga a moeda.`);
             }
             await sendText(from, "🪙 Lançando a moeda...");
             const resultado = Math.random() < 0.5 ? "cara" : "coroa";
             const imgPath = path.join(__dirname, `${resultado}.png`);
-            await sock.sendMessage(from, { image: fs.readFileSync(imgPath), caption: `${escolha === resultado ? "😁 *Vitória!*" : "😭 *Derrota!*"}\n\nO resultado caiu *${resultado.toUpperCase()}*` });
+            await sock.sendMessage(from, {
+                image: fs.readFileSync(imgPath),
+                caption: `${escolha === resultado ? "😁 *Vitória!*" : "😭 *Derrota!*"}\n\nO resultado caiu *${resultado.toUpperCase()}*`
+            });
         }
 
         // Novo: Roleta russa
@@ -232,10 +243,16 @@ async function startBot() {
             }
         }
 
-        // Novo: Chance
+        // Novo: Chance (mensagem de erro bonita)
         if (messageContent.startsWith("!chance")) {
             const frase = messageContent.replace("!chance", "").trim();
-            if (!frase) return sendText(from, "❗ Use: !chance algo");
+            if (!frase) return sendText(from, `❗ Não foi possível realizar o comando *!chance*.
+
+*Motivo* : Parece que você usou o comando *!chance* incorretamente ou não sabe como utilizá-lo.
+
+❔ USO DO COMANDO ❔
+
+Ex: *!chance ficar rico* - Calcula sua chance de um tema aleatório a sua escolha.`);
             const chance = Math.floor(Math.random() * 101);
             await sendText(from, `📊 *Chance*\n\nVocê tem *${chance}%* de chance de *${frase}*`);
         }
@@ -253,7 +270,7 @@ async function startBot() {
             await sock.sendMessage(from, {
                 image: fs.readFileSync(imagePath),
                 caption: `*🏷️ Nome do bot:* agathabot
-*Versão:* 1.2.9
+*Versão:* 1.2.10
 *📄 Criado por:* Matt
 *💻 Desenvolvido com:* Baileys + Node.js
 *📚 Propósito:* Bot pessoal com foco em ajudar grupos.
