@@ -210,7 +210,7 @@ async function startBot() {
             await sendText(from, `${resultado}\n\nVocê: ${emojis[escolhaJogador]} | Bot: ${emojis[escolhaBot]}`);
         }
 
-        // Novo: Cara ou coroa (corrigido + mensagem de erro bonita)
+        // Novo: Cara ou coroa (com delay de 1s e mensagem de erro bonita)
         if (messageContent.startsWith("!caracoroa")) {
             const escolha = messageContent.split(" ")[1];
             if (!["cara", "coroa"].includes(escolha)) {
@@ -224,13 +224,17 @@ Ex: *!caracoroa* cara - Escolhe cara e joga a moeda.
 
 Ex: *!caracoroa* coroa - Escolhe coroa e joga a moeda.`);
             }
+
             await sendText(from, "🪙 Lançando a moeda...");
-            const resultado = Math.random() < 0.5 ? "cara" : "coroa";
-            const imgPath = path.join(__dirname, `${resultado}.png`);
-            await sock.sendMessage(from, {
-                image: fs.readFileSync(imgPath),
-                caption: `${escolha === resultado ? "😁 *Vitória!*" : "😭 *Derrota!*"}\n\nO resultado caiu *${resultado.toUpperCase()}*`
-            });
+
+            setTimeout(async () => {
+                const resultado = Math.random() < 0.5 ? "cara" : "coroa";
+                const imgPath = path.join(__dirname, `${resultado}.jpg`);
+                await sock.sendMessage(from, {
+                    image: fs.readFileSync(imgPath),
+                    caption: `${escolha === resultado ? "😁 *Vitória!*" : "😭 *Derrota!*"}\n\nO resultado caiu *${resultado.toUpperCase()}*`
+                });
+            }, 1000);
         }
 
         // Novo: Roleta russa
@@ -270,7 +274,7 @@ Ex: *!chance ficar rico* - Calcula sua chance de um tema aleatório a sua escolh
             await sock.sendMessage(from, {
                 image: fs.readFileSync(imagePath),
                 caption: `*🏷️ Nome do bot:* agathabot
-*Versão:* 1.2.10
+*Versão:* 1.2.12
 *📄 Criado por:* Matt
 *💻 Desenvolvido com:* Baileys + Node.js
 *📚 Propósito:* Bot pessoal com foco em ajudar grupos.
